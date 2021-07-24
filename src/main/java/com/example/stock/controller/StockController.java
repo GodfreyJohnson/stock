@@ -80,8 +80,13 @@ public class StockController {
             JSONArray resArr = new JSONArray();
             for (Entry<String, Integer> entry : ratingMap.entrySet()) {
                 JSONArray item = new JSONArray();
-                item.add(entry.getKey());
+                String stockKey = entry.getKey();
+                String[] list = stockKey.split("-");
+                item.add(stockKey);
                 item.add(entry.getValue());
+                if (list != null && list.length > 1) {
+                    item.add("https://xueqiu.com/S/" + list[1]);
+                }
                 resArr.add(item);
             }
             map.put("stockRating", resArr);
@@ -89,10 +94,7 @@ public class StockController {
     }
 
     private void countEastReportRating(ConcurrentHashMap<String, Integer> ratingMap, String from, String to, Integer i) {
-        Long startGet = System.currentTimeMillis();
         String result = doGetEastReportList(from, to, i);
-        Long endGet = System.currentTimeMillis();
-        System.out.println("get page:" + i + " use time: " + (endGet - startGet) / 1000 + "s");
         if (result == null) {
             return;
         } else {
@@ -106,7 +108,13 @@ public class StockController {
             array.forEach(item -> {
                 String stockName = Optional.ofNullable(item.toString())
                         .map(JSONObject::parseObject)
-                        .map(json -> json.getString("stockName"))
+                        .map(json -> {
+                            String markert = "SZ";
+                            if (!json.getString("market").equals("SHENZHEN")) {
+                                markert = "SH";
+                            }
+                            return json.getString("stockName") + "-" + markert + json.getString("stockCode");
+                        })
                         .orElse(null);
                 if (!StringUtils.isEmpty(stockName)) {
                     if (ratingMap.containsKey(stockName)) {
@@ -127,7 +135,7 @@ public class StockController {
                 "beginTime=" + from + "&endTime=" + to + "&pageNo=" + page + "&fields=&qType=0&" +
                 "orgCode=&code=*&rcode=&sort=stockCode%2Casc&p=1&pageNo=1" +
                 "&_=1627121472659";
-        String result =  doGet(url, null);
+        String result = doGet(url, null);
         return result;
     }
 
