@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8"/>
+    <title>精准数据图谱</title>
+    <script src='echarts.min.js'></script>
+    <script src='laydate.js'></script>
+    <script src='jquery.js'></script>
+    <script src='jquery.dataTables.js'></script>
+    <link rel="stylesheet" href='jquery.dataTables.css' type="text/css"/>
+</head>
+<body>
+<p>
+    <input type="text" name="title" required lay-verify="required" autocomplete="off" class="layui-input"
+           value="600519" id="stockId">
+    <input type="text" style="width: 330px" placeholder="请选择日期" id="dateTimePicker1">
+    <button type="button" class="layui-btn" id="query">查询</button>
+</p>
+<h3>五线谱</h3>
+<p>
+<div id="staff" style="width: 100%;height:400px;"></div>
+</p>
+
+<h3>研报排行榜</h3>
+<p>
+<table id="rating" style="text-align: center">
+    <thead>
+    <tr>
+        <th>名称</th>
+        <th>数量</th>
+    </tr>
+    </thead>
+</table>
+</p>
+
+</body>
+<script>
+    $(document).ready(function () {
+        var table = $('#rating').DataTable({
+            "order": [1, "desc"]
+        });
+        function renderRating(data) {
+            table.clear();
+            table.rows.add(data).draw();
+        };
+
+        function renderStaff(data) {
+            var time = data.time;
+            var tr = data.tr;
+            var price = data.price;
+            var tr_minus_1_std = data.tr_minus_1_std;
+            var tr_minus_2_std = data.tr_minus_2_std;
+            var tr_plus_1_std = data.tr_plus_1_std;
+            var tr_plus_2_std = data.tr_plus_2_std;
+            // 初始化ECharts组件到id为main的元素上
+            let myChart = echarts.init(document.getElementById('staff'));
+            // 定义图标的配置项
+            let option = {
+                title: {
+                    text: '五线谱'
+                },
+                tooltip: {},
+                // x轴配置
+                xAxis: {
+                    data: time
+                },
+                // y轴配置
+                yAxis: {},
+                series: [{
+                    data: price,
+                    type: 'line',
+                    name: 'price', minInterval: 1
+                }, {
+                    data: tr,
+                    type: 'line',
+                    name: 'tr', minInterval: 1
+                }, {
+                    data: tr_minus_1_std,
+                    type: 'line',
+                    name: 'tr_minus_1_std', minInterval: 1
+                }, {
+                    data: tr_minus_2_std,
+                    type: 'line',
+                    name: 'tr_minus_2_std', minInterval: 1
+                }, {
+                    data: tr_plus_1_std,
+                    type: 'line',
+                    name: 'tr_plus_1_std', minInterval: 1
+                }, {
+                    data: tr_plus_2_std,
+                    type: 'line',
+                    name: 'tr_plus_2_std', minInterval: 1
+                }]
+            };
+            myChart.setOption(option);
+        };
+        $("#query").click(function () {
+            var stock = $("#stockId").val();
+            var staffTime = $("#dateTimePicker1").val();
+            $.ajax({
+                url: "http://localhost:9090/query",
+                type: "post",
+                dataType: 'json',
+                async: false,
+                data: {
+                    stock: stock,
+                    staffTime: staffTime,
+                    reportRatingTime: staffTime
+                },
+                success: function (data) {
+                    renderStaff(data);
+                    renderRating(data.stockRating);
+                },
+                error: function (data) {
+                    console.log(data);
+                }
+            });
+        });
+    });
+    //日期时间范围
+    laydate.render({
+        elem: '#dateTimePicker1'
+        , type: 'datetime'
+        , value: '2020-09-10 00:00:00 - 2021-09-10 00:00:00'
+        , isInitValue: true
+        , range: true
+    });
+</script>
+
+</html>
