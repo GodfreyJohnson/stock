@@ -49,6 +49,8 @@ public class StockController {
 
     private ThreadPoolExecutor pool = new ThreadPoolExecutor(50, 100, 1, TimeUnit.MINUTES, new LinkedBlockingQueue<>());
 
+    Map<String, Object> cache = new HashMap<>();
+
     @GetMapping("/")
     public String index(ModelMap map) {
         return "index";
@@ -70,6 +72,10 @@ public class StockController {
     }
 
     private void getEastReportRating(JSONObject map, String from, String to) {
+        if (cache.containsKey("stockRating" + from + to)) {
+            map.put("stockRating", cache.get("stockRating" + from + to));
+            return;
+        }
         ConcurrentHashMap<String, Integer> ratingMap = new ConcurrentHashMap<>();
         List<Integer> intList = IntStream.rangeClosed(1, 300).boxed().collect(Collectors.toList());
         CompletableFuture[] futures = intList.stream()
@@ -90,6 +96,7 @@ public class StockController {
                 resArr.add(item);
             }
             map.put("stockRating", resArr);
+            cache.put("stockRating" + from + to, resArr);
         }
     }
 
